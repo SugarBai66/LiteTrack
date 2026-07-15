@@ -96,7 +96,7 @@ class BaseTrainer:
                         if self._checkpoint_dir:
                             if self.settings.local_rank in [-1, 0]:
                                 self.save_checkpoint(eval=True)
-                    elif epoch > (max_epochs - 1) or save_every_epoch or epoch % 40 == 0 or epoch in save_epochs:
+                    elif epoch > (max_epochs - 1) or save_every_epoch or epoch % 10 == 0 or epoch in save_epochs:
                     # if epoch > (max_epochs - 10) or save_every_epoch or epoch % 100 == 0:
                         if self._checkpoint_dir:
                             if self.settings.local_rank in [-1, 0]:

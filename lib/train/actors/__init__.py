@@ -1,4 +1,4 @@
-import imp
+import importlib.machinery
 from .base_actor import BaseActor
 from .ostrack import OSTrackActor
 from .dino4track_actor import Dino4TrackActor

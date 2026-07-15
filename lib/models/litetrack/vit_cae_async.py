@@ -18,7 +18,7 @@ import torch.nn.functional as F
 
 
 from functools import partial
-from timm.models.layers import to_2tuple
+from timm.layers import to_2tuple
 
 
 def _no_grad_trunc_normal_(tensor, mean, std, a, b):

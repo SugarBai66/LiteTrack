@@ -10,7 +10,7 @@ https://github.com/facebookresearch/dino
 https://github.com/rwightman/pytorch-image-models/blob/master/timm/models/vision_transformer.py
 """
 
-import imp
+import importlib.machinery
 import os
 import math
 import torch
@@ -19,7 +19,7 @@ import torch.nn.functional as F
 import torch.utils.checkpoint as checkpoint
 from .utils import combine_tokens, recover_tokens
 from functools import partial
-from timm.models.layers import to_2tuple
+from timm.layers import to_2tuple
 
 
 def _no_grad_trunc_normal_(tensor, mean, std, a, b):
