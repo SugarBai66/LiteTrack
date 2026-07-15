@@ -163,10 +163,81 @@ sudo ldconfig
 - 若不想被系统库束缚，可考虑改用 OpenCV，只需一次代码修改，日后再无依赖问题。
 - 关注 `jpeg4py` 的更新，若长期无维护，建议有计划地迁移到更现代的方案。
 
+# checkpoint 不会自动恢复运行
+
+## 📌 为什么会有 eval 模式的 checkpoint？
+
+在 `base_trainer.py` 的 `save_checkpoint` 方法中，有这样的逻辑：
+
+
+
+```python
+if   epoch >= int(max_epochs*0.8)-1:
+    if self._checkpoint_dir:
+        if self.settings.local_rank in [-1, 0]:
+            self.save_checkpoint(eval=True)   # 只保存网络权重，不保存 epoch、optimizer 等
+elif ...:
+    self.save_checkpoint()   # 普通保存，包含完整状态
+```
+
+当 `max_epochs=100` 时，`int(100*0.8)-1 = 79`，所以从第 79 轮开始，保存的 checkpoint 都是 **eval 版本**（只有 `net` 权重）。你的 `ep0082` 在 79 之后，因此是 eval 版本，缺少 `epoch`、`optimizer` 等字段。
+
+这就是为什么 `load_checkpoint` 无法恢复 `epoch`，`trainer.epoch` 仍为 0。
+
 ------
 
-## 📘 总结
+## 🛠️ 解决方案
 
-本次环境配置的难点主要集中在 **`jpeg4py` 的系统依赖**和 **Python 3.12 的兼容性**。通过逐步安装缺失包、配置动态库路径、修改废弃 API，最终成功启动训练。整个过程体现了深度学习项目中“环境即基础设施”的重要性，以及系统库管理、Python 版本选择对项目成败的影响。
+### 方案一：手动从文件名提取 epoch（快速继续训练）
 
-笔记存档完毕，可供日后参考或分享。
+在 `train_script.py` 中修改手动加载代码，添加正则提取 epoch 并强制赋值：
+
+```python
+import re
+
+checkpoint_rel_path = "checkpoints/train/litetrack/B8_cae_center_got10k_ep100/LiteTrack_ep0082.pth.tar"
+checkpoint_path = os.path.join(settings.save_dir, checkpoint_rel_path)
+if os.path.exists(checkpoint_path):
+    print(f"Loading checkpoint from {checkpoint_path}")
+    trainer.load_checkpoint(checkpoint=checkpoint_path)
+    # 从文件名解析 epoch
+    match = re.search(r'_ep(\d+)\.pth\.tar$', checkpoint_path)
+    if match:
+        epoch_num = int(match.group(1))
+        trainer.epoch = epoch_num
+        print(f"Resumed training from epoch {trainer.epoch}")
+    else:
+        print("Could not parse epoch from filename, starting from 0.")
+else:
+    print("Checkpoint not found, starting from scratch.")
+```
+
+
+
+这样虽然优化器状态没有恢复，但至少可以从第 83 轮继续训练（还剩 18 轮）。不过优化器是重新初始化的，学习率也会从初始值开始，可能导致 loss 突增，但通常仍能收敛。
+
+------
+
+### 方案二：使用第 78 轮（或更早）的完整 checkpoint（推荐）
+
+如果你还保留有第 78 轮或更早的 checkpoint（比如 `LiteTrack_ep0078.pth.tar`），这些是**完整保存**的（包含 epoch、optimizer 等），加载它们可以完美恢复所有状态。检查你的输出目录：
+
+```bash
+ls -la /home/hugo/projects/cv/LiteTrack/output/checkpoints/train/litetrack/B8_cae_center_got10k_ep100/
+```
+
+如果有 `LiteTrack_ep0078.pth.tar`，建议使用它。修改 `checkpoint_rel_path` 为那个文件，然后正常加载（无需从文件名提取 epoch，因为 checkpoint 内部有 `epoch` 字段）。
+
+------
+
+### 方案三：修改保存策略，让所有 checkpoint 都保存完整状态
+
+如果你希望以后所有 checkpoint 都能恢复，可以修改 `base_trainer.py` 中的 `save_checkpoint` 调用，将 `eval=True` 改为 `eval=False`（或直接去掉 `eval` 分支）。但这样会增大存储开销，不推荐。
+
+------
+
+## ⚠️ 注意事项
+
+- 如果你使用了方案一（优化器未恢复），建议观察前几个 epoch 的 loss 是否异常。如果 loss 很高，可以适当降低学习率或增加 warmup。
+- 如果方案一导致训练不稳定，可以尝试使用更早的完整 checkpoint（方案二）。
+

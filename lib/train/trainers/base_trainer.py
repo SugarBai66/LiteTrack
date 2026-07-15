@@ -2,6 +2,9 @@ import os
 import glob
 import torch
 import traceback
+
+from sympy import true, false
+
 from lib.train.admin import multigpu
 from torch.utils.data.distributed import DistributedSampler
 
@@ -59,7 +62,7 @@ class BaseTrainer:
         else:
             self._checkpoint_dir = None
 
-    def train(self, max_epochs, load_latest=False, fail_safe=True, load_previous_ckpt=False, distill=False):
+    def train(self, max_epochs, load_latest=true, fail_safe=True, load_previous_ckpt=False, distill=False):
         """Do training for the given number of epochs.
         args:
             max_epochs - Max number of training epochs,
@@ -202,7 +205,7 @@ class BaseTrainer:
             raise TypeError
 
         # Load network
-        checkpoint_dict = torch.load(checkpoint_path, map_location='cpu')
+        checkpoint_dict = torch.load(checkpoint_path, map_location='cpu',weights_only=false)
 
         # assert net_type == checkpoint_dict['net_type'], 'Network is not of correct type.'
 
