@@ -31,9 +31,18 @@ def transform_got10k(src_dir, dest_dir):
                 os.makedirs(seq_dir)
             dest_path = os.path.join(seq_dir, item)
             os.system("cp %s %s" % (src_path, dest_path))
+
+    src_zip_path = os.path.join(os.path.dirname(src_dir.rstrip('/')),
+                                os.path.basename(src_dir.rstrip('/')))
+    dest_zip_path = os.path.join(os.path.dirname(dest_dir.rstrip('/')),
+                                         os.path.basename(dest_dir.rstrip('/')))
+    shutil.make_archive(src_zip_path, "zip", src_dir)
+    shutil.make_archive(dest_zip_path, "zip", dest_dir)
+    print(f"Zip saved to: {src_zip_path}.zip")
+    print(f"Zip saved to: {dest_zip_path}.zip")
     # make zip archive
-    shutil.make_archive(src_dir, "zip", src_dir)
-    shutil.make_archive(dest_dir, "zip", dest_dir)
+    # shutil.make_archive(src_dir, "zip", src_dir)
+    # shutil.make_archive(dest_dir, "zip", dest_dir)
     # Remove the original files
     # shutil.rmtree(src_dir)
     shutil.rmtree(dest_dir)

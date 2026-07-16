@@ -1,4 +1,9 @@
+# Result
+
+![image-20260716182738871](assets/result.png)
+
 # Error
+
 ```bash
 Traceback (most recent call last):
   File "/home/hugo/projects/cv/LiteTrack/tracking/create_default_local_file.py", line 5, in <module>
@@ -240,4 +245,100 @@ ls -la /home/hugo/projects/cv/LiteTrack/output/checkpoints/train/litetrack/B8_ca
 
 - 如果你使用了方案一（优化器未恢复），建议观察前几个 epoch 的 loss 是否异常。如果 loss 很高，可以适当降低学习率或增加 warmup。
 - 如果方案一导致训练不稳定，可以尝试使用更早的完整 checkpoint（方案二）。
+
+# 一、local.py 配置是否正确
+整体没问题，但有一个小瑕疵：
+settings.network_path 你设置成了一个具体的 .pth.tar 文件路径，但根据代码设计，它本意是一个目录（"Where tracking networks are stored"）。不过实际上测试代码并没有使用 network_path，checkpoint 的加载路径是在 lib/test/parameter/litetrack.py 中通过 save_dir 拼接的：
+
+```python
+params.checkpoint = os.path.join(save_dir, "checkpoints/train/litetrack/%s/LiteTrack_ep%04d.pth.tar" % (yaml_name,run_epoch))
+```
+
+所以 network_path 设成什么都不影响测试，只是个小冗余。
+save_dir = /home/hugo/projects/cv/LiteTrack/output ✅ — 这是关键路径，checkpoint 就是通过它拼出来的。
+results_path = /home/hugo/projects/cv/LiteTrack/output/test/tracking_results ✅
+各数据集路径看起来都合理。
+
+# 二、测试结果存放在哪里
+根据 tracker.py 第 50 行的逻辑：
+
+```python
+self.results_dir = '{}/{}/{}_{:03d}'.format(env.results_path, self.name, self.parameter_name, self.run_id)
+```
+
+结合你的 local.py 配置，假设你运行：
+
+```bash
+python tracking/test.py litetrack B8_cae_center_got10k_ep100 --dataset lasot --ep 100
+```
+
+结果存放在
+
+```bash
+/home/hugo/projects/cv/LiteTrack/output/test/tracking_results/litetrack/B8_cae_center_got10k_ep100_100/
+```
+
+具体文件结构：
+LaSOT 等离线评估数据集：每个序列一个 {sequence_name}.txt（包含每帧的 bbox）
+GOT-10k / TrackingNet：会多一层子目录，如 {results_dir}/got10k/{sequence_name}.txt
+每个 .txt 文件内容是该序列每帧的预测框（x, y, w, h），同时还有一个 {sequence_name}_time.txt 记录每帧的推理时间。
+
+## 1. settings.network_path 需要指定正确吗？
+不需要，它不影响测试。 整个测试流程中没有任何代码读取 network_path。你设成目录还是文件路径都无所谓，它只是一个遗留的配置项。
+
+## 2. .pth.tar 文件路径在哪里指定的？
+在 lib/test/parameter/litetrack.py 第 24 行：
+
+```python
+params.checkpoint = os.path.join(save_dir, "checkpoints/train/litetrack/%s/LiteTrack_ep%04d.pth.tar" % (yaml_name, run_epoch))
+```
+
+它用 local.py 中的 save_dir（而不是 network_path）+ 固定格式拼接出来的。
+对应你的运行参数：
+save_dir = /home/hugo/projects/cv/LiteTrack/output
+yaml_name = B8_cae_center_got10k_ep100（即 tracker_param）
+run_epoch = 100（即 --ep 的值）
+最终拼出：
+
+```python
+/home/hugo/projects/cv/LiteTrack/output/checkpoints/train/litetrack/B8_cae_center_got10k_ep100/LiteTrack_ep0100.pth.tar
+```
+
+然后 checkpoint 的实际加载在 lib/test/tracker/litetrack.py 第 24 行：
+
+```python
+network.load_state_dict(torch.load(self.params.checkpoint, map_location='cpu')['net'], strict=False)
+```
+
+## 3. 为什么之前不生成结果在 output 里？
+因为你用了 --debug 2！
+看 lib/test/evaluation/running.py 第 128 行和第 155-156 行：
+
+```python
+if _results_exist() and not debug:   # debug=2 时跳过检查，会重新跑
+    print('FPS: {}'.format(-1))
+    return
+...
+if not debug:                         # debug=2 时，not 2 = False，不保存！
+    _save_tracker_output(seq, tracker, output)
+
+```
+
+**debug 非零时，结果不会被保存到磁盘**。 这是设计如此——debug 模式只跑推理、打印 FPS，但不写结果文件。
+如果你想生成结果文件，把 --debug 去掉或设为 0
+
+```bash
+python tracking/test.py litetrack B8_cae_center_got10k_ep100 \
+    --dataset_name got10k_test \
+    --threads 6 --num_gpus 1 \
+    --ep 100 99 98
+```
+
+这样结果就会保存到：
+
+```bash
+output/test/tracking_results/litetrack/B8_cae_center_got10k_ep100_100/got10k/
+output/test/tracking_results/litetrack/B8_cae_center_got10k_ep100_099/got10k/
+output/test/tracking_results/litetrack/B8_cae_center_got10k_ep100_098/got10k/
+```
 
