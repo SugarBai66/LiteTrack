@@ -342,3 +342,109 @@ output/test/tracking_results/litetrack/B8_cae_center_got10k_ep100_099/got10k/
 output/test/tracking_results/litetrack/B8_cae_center_got10k_ep100_098/got10k/
 ```
 
+### ERROR:
+
+```bash
+Traceback (most recent call last):
+  File "/mnt/ssd4t/projects/cv/LiteTrack/lib/train/run_training.py", line 114, in <module>
+    main()
+  File "/mnt/ssd4t/projects/cv/LiteTrack/lib/train/run_training.py", line 106, in main
+    run_training(args.script, args.config, cudnn_benchmark=args.cudnn_benchmark,
+  File "/mnt/ssd4t/projects/cv/LiteTrack/lib/train/run_training.py", line 79, in run_training
+    expr_func(settings)
+  File "/mnt/ssd4t/projects/cv/LiteTrack/lib/train/../../lib/train/train_script.py", line 97, in run
+    trainer.train(cfg.TRAIN.EPOCH, load_latest=True, fail_safe=True)
+  File "/mnt/ssd4t/projects/cv/LiteTrack/lib/train/../../lib/train/trainers/base_trainer.py", line 88, in train
+    self.train_epoch()
+  File "/mnt/ssd4t/projects/cv/LiteTrack/lib/train/../../lib/train/trainers/ltr_trainer.py", line 145, in train_epoch
+    self.cycle_dataset(loader)
+  File "/mnt/ssd4t/projects/cv/LiteTrack/lib/train/../../lib/train/trainers/ltr_trainer.py", line 89, in cycle_dataset
+    loss, stats = self.actor(data)
+                  ^^^^^^^^^^^^^^^^
+  File "/mnt/ssd4t/projects/cv/LiteTrack/lib/train/../../lib/train/actors/ostrack.py", line 48, in __call__
+    loss, status = self.compute_losses(out_dict, data)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/ssd4t/projects/cv/LiteTrack/lib/train/../../lib/train/actors/ostrack.py", line 151, in compute_losses
+    loss, status = self.compute_losses_CENTER(pred_dict, gt_dict,)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/ssd4t/projects/cv/LiteTrack/lib/train/../../lib/train/actors/ostrack.py", line 165, in compute_losses_CENTER
+    raise ValueError("Network outputs is NAN! Stop Training")
+ValueError: Network outputs is NAN! Stop Training
+```
+
+![image-20260718220518898](assets/fixLRError.png)
+
+```python
+# ... existing code ...
+        for i in range(num_tries):
+            try:
+                if load_latest:
+                    self.load_checkpoint()
+                if load_previous_ckpt:
+                    directory = '{}/{}'.format(self._checkpoint_dir, self.settings.project_path_prv)
+                    self.load_state_dict(directory)
+                if distill:
+                    directory_teacher = '{}/{}'.format(self._checkpoint_dir, self.settings.project_path_teacher)
+                    self.load_state_dict(directory_teacher, distill=True)
+                for epoch in range(self.epoch+1, max_epochs+1):
+                    self.epoch = epoch
+
+                    self.train_epoch()
+
+                    if self.lr_scheduler is not None:
+                        if self.settings.scheduler_type != 'cosine':
+                            self.lr_scheduler.step()
+                        else:
+                            self.lr_scheduler.step(epoch - 1)
+                    # only save the last 10 checkpoints
+                    save_every_epoch = getattr(self.settings, "save_every_epoch", False)
+                    save_epochs = [79, 119, 120, 239]
+                    if   epoch >= int(max_epochs*0.8)-1:
+                        if self._checkpoint_dir:
+                            if self.settings.local_rank in [-1, 0]:
+                                self.save_checkpoint(eval=True)
+                    elif epoch > (max_epochs - 1) or save_every_epoch or epoch % 10 == 0 or epoch in save_epochs:
+                    # if epoch > (max_epochs - 10) or save_every_epoch or epoch % 100 == 0:
+                        if self._checkpoint_dir:
+                            if self.settings.local_rank in [-1, 0]:
+                                self.save_checkpoint()
+                                # self.delet_old_checkpoint(epoch-1)
+            except:
+                print('Training crashed at epoch {}'.format(epoch))
+                if fail_safe:
+                    self.epoch -= 1
+                    load_latest = True
+                    print('Traceback for the error!')
+                    print(traceback.format_exc())
+                    print('Restarting training from last epoch ...')
+                else:
+                    raise
+
+        print('Finished training!')
+# ... existing code ...
+
+```
+
+##### 修复2：在 ltr_trainer.py 的 cycle_dataset 中增加 NaN loss 跳过机制，避免单个 batch 的 NaN 导致整个训练崩溃：
+
+```python
+# ... existing code ...
+            # forward pass
+            if not self.use_amp:
+                loss, stats = self.actor(data)
+            else:
+                with autocast():
+                    loss, stats = self.actor(data)
+
+            # skip batch if loss is NaN or Inf
+            if loader.training and (torch.isnan(loss) or torch.isinf(loss)):
+                print('Warning: NaN/Inf loss detected, skipping this batch at iteration {}'.format(i))
+                self.optimizer.zero_grad()
+                continue
+
+            # backward pass and update weights
+# ... existing code ...
+
+```
+
+![image-20260718220911411](assets/image-20260718220911412.png)
