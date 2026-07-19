@@ -1,6 +1,22 @@
 # Result
 
+### B9_cae_center_got10k_ep100_100 LR=0.0001
+
+![image-20260719203626462](assets/B9_cae_center_got10k_ep100_100.png)
+
+### B8_cae_center_got10k_ep100_100 LR=0.0001
+
 ![image-20260716182738871](assets/result.png)
+
+### B9_cae_center_got10k_ep100_fixLR_100  LR=0.001
+
+![image-20260719203042817](assets/B9_cae_center_got10k_ep100_fixLR_100.png)
+
+### B9_cae_center_got10k_ep100_fixLR_099 LR=0.001
+
+![image-20260719203328186](assets/B9_cae_center_got10k_ep100_fixLR_099.png)
+
+
 
 # Error
 
