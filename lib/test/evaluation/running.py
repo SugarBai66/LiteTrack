@@ -157,6 +157,8 @@ def run_sequence(seq: Sequence, tracker: Tracker, debug=False, num_gpu=8, vis=No
     if tracker is not None:
         del tracker
 
+def dummy_handler(data):
+    pass
 
 def run_dataset(dataset, trackers, debug=False, threads=0, num_gpus=8):
     global VISDOM
@@ -185,7 +187,8 @@ def run_dataset(dataset, trackers, debug=False, threads=0, num_gpus=8):
                 tracker = Tracker(tracker_name, tracker_param, dataset_name, ep_id, debug=debug)
                 # VISDOM.register_event_handler(tracker.tracker._visdom_ui_handler, 'Tracking')
                 if debug:
-                    VISDOM = Visdom(1,{},{})
+                    # ??? TODO
+                    VISDOM = Visdom(1, {'handler': dummy_handler, 'win_id': 'Tracking'}, {},env='LiteTrack_Debug')
                 run_sequence(seq, tracker, debug=debug, vis=VISDOM)
                 # del tracker
     elif mode == 'parallel':

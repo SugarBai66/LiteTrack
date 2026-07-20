@@ -70,7 +70,7 @@ class VisImage(VisBase):
     def __init__(self, visdom, show_data, title):
         super().__init__(visdom, show_data, title)
 
-    def save_data(self, data):
+    def save_data(self, data,**kwargs):
         data = data.float()
         self.raw_data = data
 
@@ -141,7 +141,7 @@ class VisFeaturemap(VisBase):
         self.visdom.properties(self.block_list, opts={'title': 'Featuremap UI'}, win='featuremap_ui')
         self.draw_data()
 
-    def save_data(self, data):
+    def save_data(self, data, **kwargs):
         data = data.view(-1, *data.shape[-2:])
         data = data.flip(1)
         if self.block_list is None:
@@ -203,7 +203,7 @@ class VisCostVolume(VisBase):
             cost_volume_slice = cost_volume_data[slice_pos[0], slice_pos[1], :, :]
         self.visdom.heatmap(cost_volume_slice.flip(0), opts={'title': self.title}, win=self.title)
 
-    def save_data(self, data):
+    def save_data(self, data, **kwargs):
         data = data.view(data.shape[-2], data.shape[-1], data.shape[-2], data.shape[-1])
         self.raw_data = data
 
@@ -287,7 +287,7 @@ class VisCostVolumeUI(VisBase):
         data = self.shade_cell(data)
         self.visdom.image(data, opts={'title': self.title}, win=self.title)
 
-    def save_data(self, data):
+    def save_data(self, data, **kwargs):
         # Ignore feat shape
         data = data[0]
         data = data.float()
@@ -315,7 +315,7 @@ class VisInfoDict(VisBase):
 
         return display_text
 
-    def save_data(self, data):
+    def save_data(self, data, **kwargs):
         for key, val in data.items():
             self.raw_data[key] = val
 
@@ -329,7 +329,7 @@ class VisText(VisBase):
     def __init__(self, visdom, show_data, title):
         super().__init__(visdom, show_data, title)
 
-    def save_data(self, data):
+    def save_data(self, data, **kwargs):
         self.raw_data = data
 
     def draw_data(self):
@@ -340,8 +340,9 @@ class VisText(VisBase):
 class VisLinePlot(VisBase):
     def __init__(self, visdom, show_data, title):
         super().__init__(visdom, show_data, title)
+        self.last_data_len = 0  # 记录上一次发送的数据长度
 
-    def save_data(self, data):
+    def save_data(self, data, **kwargs):
         self.raw_data = data
 
     def draw_data(self):
@@ -352,7 +353,39 @@ class VisLinePlot(VisBase):
             data_y = self.raw_data.clone()
             data_x = torch.arange(data_y.shape[0])
 
-        self.visdom.line(data_y, data_x, opts={'title': self.title}, win=self.title)
+        current_len = data_y.shape[0]
+
+        # 如果窗口被 Clear 了，重置长度记录
+        if current_len < self.last_data_len:
+            self.last_data_len = 0
+
+        new_y = data_y[self.last_data_len:]
+        new_x = data_x[self.last_data_len:]
+
+        if len(new_y) > 0:
+            if self.last_data_len == 0:
+                # 第一次：创建窗口
+                self.visdom.line(
+                    new_y, new_x,
+                    opts={'title': f'{self.title} (N={current_len})'},
+                    win=self.title
+                )
+            else:
+                # 后续：增量追加
+                self.visdom.line(
+                    new_y, new_x,
+                    opts={'title': f'{self.title} (N={current_len})'},
+                    win=self.title,
+                    update='append'
+                )
+            self.last_data_len = current_len
+        else:
+            # 没有新点，只更新标题（例如清空后重跑）
+            self.visdom.line(
+                data_y, data_x,
+                opts={'title': f'{self.title} (N={current_len})', 'update': 'replace'},
+                win=self.title
+            )
 
 
 class VisTracking(VisBase):
@@ -484,7 +517,7 @@ class VisBBReg(VisBase):
         self.visdom.properties(self.block_list, opts={'title': 'BBReg Vis'}, win='bbreg_vis')
         self.draw_data()
 
-    def save_data(self, data):
+    def save_data(self, data, **kwargs):
         self.image = data[0].float()
         self.init_boxes = data[1]
         self.final_boxes = data[2]
@@ -574,7 +607,9 @@ class Visdom:
         self.visdom.properties(self.blocks_list, opts={'title': 'Block List'}, win='block_list')
         self.visdom.register_event_handler(self.block_list_callback_handler, 'block_list')
 
-        if ui_info is not None:
+        # if ui_info is not None:
+        # self.visdom.register_event_handler(ui_info['handler'], ui_info['win_id'])
+        if ui_info and 'handler' in ui_info and 'win_id' in ui_info:
             self.visdom.register_event_handler(ui_info['handler'], ui_info['win_id'])
 
     def register_event_handler(self, handler, win_id):
