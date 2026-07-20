@@ -30,9 +30,12 @@ class GOT10KDataset(BaseDataset):
         return SequenceList([self._construct_sequence(s) for s in self.sequence_list])
 
     def _construct_sequence(self, sequence_name):
-        anno_path = '{}/{}/groundtruth.txt'.format(self.base_path, sequence_name)
 
-        ground_truth_rect = load_text(str(anno_path), delimiter=',', dtype=np.float64)
+        anno_path = '{}/{}/groundtruth.txt'.format(self.base_path, sequence_name)
+        print(f"anno_path = {anno_path}")
+
+        # ground_truth_rect = load_text(str(anno_path), delimiter=',', dtype=np.float64)
+        ground_truth_rect = np.loadtxt(str(anno_path), delimiter=',', dtype=np.float64)
 
         frames_path = '{}/{}'.format(self.base_path, sequence_name)
         frame_list = [frame for frame in os.listdir(frames_path) if frame.endswith(".jpg")]

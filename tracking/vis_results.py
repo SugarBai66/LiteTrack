@@ -22,6 +22,9 @@ class VisResults(object):
         self._init_visdom()
 
     def vis_dataset(self, dataset, trackers, skip_missing_seq=False, seq_list=[]):
+        # print("所有序列名：")
+        # for s in dataset:
+            # print(repr(s.name))  # 用 repr 能显示隐藏字符
         for seq_id, seq in enumerate(tqdm(dataset)):
             # Load anno
             seq_name = seq.name
@@ -37,11 +40,13 @@ class VisResults(object):
 
             # Fix got10k and trackingnet result path,path is like: results_dir/got10k/sequence_name.txt
             for trk_id, trk in enumerate(trackers):
-                if seq.dataset in ['got10k', 'trackingnet']:
-                    base_results_path = os.path.join(trk.results_dir, seq.dataset, seq.name)
-                else:
-                    base_results_path = os.path.join(trk.results_dir, seq.name)
-                results_path = base_results_path + '.txt'
+                # if seq.dataset in ['got10k', 'trackingnet']:
+                #     base_results_path = os.path.join(trk.results_dir, seq.dataset, seq.name)
+                # else:
+                #     base_results_path = os.path.join(trk.results_dir, seq.name)
+                # results_path = base_results_path + '.txt'
+                your_result_dir = "/mnt/ssd4t/projects/cv/LiteTrack/output/test/tracking_results/litetrack/B9_cae_center_got10k_ep100_100/got10k"
+                results_path = os.path.join(your_result_dir, seq.name + '.txt')
 
                 if os.path.isfile(results_path):
                     pred_bb = torch.tensor(load_text(str(results_path), delimiter=('\t', ','), dtype=np.float64))
@@ -54,6 +59,7 @@ class VisResults(object):
 
             frame_list = seq.frames
             for i in range(len(anno_bb)):
+                # print(f"正在处理第 {i} 帧 / 共 {len(anno_bb)} 帧")  # 加这行
                 data = []
                 frame = frame_list[i]
                 im = cv.imread(frame)
@@ -77,7 +83,9 @@ class VisResults(object):
                     break
 
                 self.update_boxes(data, seq_name + '-' + str(i).zfill(3))
-                # self.update_seg_result(im, frame)
+                import time
+                time.sleep(0.1)
+                self.update_seg_result(im, frame)
 
     def update_boxes(self, data, caption):
         caption = 'Green: GT, Red: stark_s, Yellow: stark_motion  _' + caption
@@ -86,7 +94,11 @@ class VisResults(object):
     def update_seg_result(self, frame_img, frame_path):
         seg_mask_path = os.path.join(os.path.dirname(frame_path), 'seg_mask',
                                      os.path.basename(frame_path).replace('jpg', 'png'))
+        if not os.path.isfile(seg_mask_path):
+            return
         seg_mask = cv.imread(seg_mask_path)
+        if seg_mask is None:
+            return
         alpha = 0.5
         out_img = (alpha * frame_img) + ((1 - alpha) * seg_mask)
 
@@ -132,11 +144,11 @@ class VisResults(object):
 
 if __name__ == '__main__':
     viser = VisResults()
-    dataset_name = 'lasot'
+    # dataset_name = 'lasot'
 
     trackers = []
     trackers.extend(trackerlist('litetrack', 'B9_cae_center_got10k_ep100', 'got10k', 100, 'B9_ep100'))
-    dataset = get_dataset('got10k_test')
+    dataset = get_dataset('got10k_val')
     viser.vis_dataset(dataset, trackers, seq_list=[])  # 或指定序列名
     # viser.vis_dataset(dataset, trackers, seq_list=['GOT-10k_Test_000100'])
     # trackers.extend(trackerlist('defor_stark_s', 'baseline_got10k_only', None, 'defor_stark'))

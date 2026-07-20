@@ -574,8 +574,8 @@ class Visdom:
         self.visdom.properties(self.blocks_list, opts={'title': 'Block List'}, win='block_list')
         self.visdom.register_event_handler(self.block_list_callback_handler, 'block_list')
 
-        # if ui_info is not None:
-        #     self.visdom.register_event_handler(ui_info['handler'], ui_info['win_id'])
+        if ui_info is not None:
+            self.visdom.register_event_handler(ui_info['handler'], ui_info['win_id'])
 
     def register_event_handler(self, handler, win_id):
          self.visdom.register_event_handler(handler, win_id)
