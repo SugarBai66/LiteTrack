@@ -40,13 +40,13 @@ class VisResults(object):
 
             # Fix got10k and trackingnet result path,path is like: results_dir/got10k/sequence_name.txt
             for trk_id, trk in enumerate(trackers):
-                # if seq.dataset in ['got10k', 'trackingnet']:
-                #     base_results_path = os.path.join(trk.results_dir, seq.dataset, seq.name)
-                # else:
-                #     base_results_path = os.path.join(trk.results_dir, seq.name)
-                # results_path = base_results_path + '.txt'
-                your_result_dir = "/mnt/ssd4t/projects/cv/LiteTrack/output/test/tracking_results/litetrack/B9_cae_center_got10k_ep100_100/got10k"
-                results_path = os.path.join(your_result_dir, seq.name + '.txt')
+                if seq.dataset in ['got10k', 'trackingnet']:
+                    base_results_path = os.path.join(trk.results_dir, seq.dataset, seq.name)
+                else:
+                    base_results_path = os.path.join(trk.results_dir, seq.name)
+                results_path = base_results_path + '.txt'
+                # your_result_dir = "/mnt/ssd4t/projects/cv/LiteTrack/output/test/tracking_results/litetrack/B9_cae_center_got10k_ep100_100/got10k"
+                # results_path = os.path.join(your_result_dir, seq.name + '.txt')
 
                 if os.path.isfile(results_path):
                     pred_bb = torch.tensor(load_text(str(results_path), delimiter=('\t', ','), dtype=np.float64))
