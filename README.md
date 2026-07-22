@@ -16,7 +16,12 @@
 
 ![image-20260719203328186](assets/B9_cae_center_got10k_ep100_fixLR_099.png)
 
-
+| Model                                         |  AO   |  SR   |  MR   |  FPS  | GPU    | Language | Visibility | Date         |
+| :-------------------------------------------- | :---: | :---: | :---: | :---: | :----- | :------: | :--------: | :----------- |
+| B9_cae_center_got10k_ep100_100 LR=0.0001      | 0.706 | 0.801 | 0.670 | 30.15 | 5060Ti |  python  |  Private   | Jul 19, 2026 |
+| B8_cae_center_got10k_ep100_100 LR=0.0001      | 0.696 | 0.801 | 0.644 | 31.90 | 5060Ti |  python  |  Private   | Jul 16, 2026 |
+| B9_cae_center_got10k_ep100_fixLR_100 LR=0.001 | 0.689 | 0.784 | 0.633 | 27.76 | 5060Ti |  python  |  Private   | Jul 19, 2026 |
+| B9_cae_center_got10k_ep100_fixLR_099 LR=0.001 | 0.677 | 0.770 | 0.624 | 28.19 | 5060Ti |  python  |  Private   | Jul 19, 2026 |
 
 # Error
 

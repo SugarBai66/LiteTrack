@@ -100,13 +100,48 @@ class TrackingNet(BaseVideoDataset):
     def get_sequences_in_class(self, class_name):
         return self.seq_per_class[class_name]
 
+    # def _read_bb_anno(self, seq_id):
+    #     set_id = self.sequence_list[seq_id][0]
+    #     vid_name = self.sequence_list[seq_id][1]
+    #     bb_anno_file = os.path.join(self.root, "TRAIN_" + str(set_id), "anno", vid_name + ".txt")
+    #     # gt = pandas.read_csv(bb_anno_file, delimiter=',', header=None, skip_blank_lines=True, na_filter=True)
+    #     gt = np.loadtxt(bb_anno_file, delimiter=',', dtype=np.float32)
+    #     # gt = gt.dropna().values.astype(np.float32)  # 丢弃包含 NaN 的行
+    #     return torch.tensor(gt)
+
     def _read_bb_anno(self, seq_id):
+        import numpy as np
+        import pandas as pd
         set_id = self.sequence_list[seq_id][0]
         vid_name = self.sequence_list[seq_id][1]
         bb_anno_file = os.path.join(self.root, "TRAIN_" + str(set_id), "anno", vid_name + ".txt")
-        gt = pandas.read_csv(bb_anno_file, delimiter=',', header=None, dtype=np.float32, na_filter=False,
-                             low_memory=False).values
-        return torch.tensor(gt)
+
+        # 尝试多种分隔符
+        for delimiter in [',', None, '\s+']:
+            try:
+                if delimiter is None or delimiter == '\s+':
+                    # pandas 处理任意空白分隔符
+                    df = pd.read_csv(bb_anno_file, header=None, sep='\s+',
+                                     skipinitialspace=True, engine='python',
+                                     skip_blank_lines=True, on_bad_lines='skip')
+                    df = df.dropna()
+                    if not df.empty:
+                        gt = df.values.astype(np.float32)
+                        if gt.shape[1] == 4:
+                            return torch.tensor(gt, dtype=torch.float32)
+                else:
+                    # numpy 处理逗号分隔
+                    gt = np.loadtxt(bb_anno_file, delimiter=delimiter, dtype=np.float32)
+                    if gt.ndim == 1:
+                        gt = gt.reshape(1, -1)
+                    if gt.shape[1] == 4:
+                        return torch.tensor(gt, dtype=torch.float32)
+            except:
+                continue
+
+        # 所有方式失败，返回默认全零 bbox（单帧）
+        print(f"Warning: Failed to parse {bb_anno_file}, using zero bbox.")
+        return torch.zeros((1, 4), dtype=torch.float32)
 
     def get_sequence_info(self, seq_id):
         bbox = self._read_bb_anno(seq_id)

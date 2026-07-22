@@ -32,7 +32,7 @@ class GOT10KDataset(BaseDataset):
     def _construct_sequence(self, sequence_name):
 
         anno_path = '{}/{}/groundtruth.txt'.format(self.base_path, sequence_name)
-        print(f"anno_path = {anno_path}")
+        # print(f"anno_path = {anno_path}")
 
         # ground_truth_rect = load_text(str(anno_path), delimiter=',', dtype=np.float64)
         ground_truth_rect = np.loadtxt(str(anno_path), delimiter=',', dtype=np.float64)

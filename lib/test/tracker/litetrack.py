@@ -159,7 +159,7 @@ class LiteTrack(BaseTracker):
         }
 
         if vis is not None:
-            print(f"Frame {self.frame_id}: Sending {len(self.score_history)} points to Visdom")
+            # print(f"Frame {self.frame_id}: Sending {len(self.score_history)} points to Visdom")
             # 注册所有 visdom 内容
             vis.register((image, info['gt_bbox'].tolist(), self.state), 'Tracking', 1, 'Tracking', caption='LiteTrack Tracking')
             # 修改 permute(1,0,1) → permute(2,0,1)
