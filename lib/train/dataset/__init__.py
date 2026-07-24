@@ -10,3 +10,4 @@ from .imagenetvid_lmdb import ImagenetVID_lmdb
 from .coco_seq_lmdb import MSCOCOSeq_lmdb
 from .tracking_net_lmdb import TrackingNet_lmdb
 from .uav import UAV
+from .vast_track import VastTrack

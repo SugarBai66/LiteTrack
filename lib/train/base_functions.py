@@ -1,7 +1,7 @@
 import torch
 from torch.utils.data.distributed import DistributedSampler
 # datasets related
-from lib.train.dataset import Lasot, Got10k, MSCOCOSeq, ImagenetVID, TrackingNet, UAV
+from lib.train.dataset import Lasot, Got10k, MSCOCOSeq, ImagenetVID, TrackingNet, UAV,VastTrack
 from lib.train.dataset import Lasot_lmdb, Got10k_lmdb, MSCOCOSeq_lmdb, ImagenetVID_lmdb, TrackingNet_lmdb
 from lib.train.data import sampler, opencv_loader, jpeg4py_loader, processing, LTRLoader
 import lib.train.data.transforms as tfm
@@ -29,7 +29,7 @@ def names2datasets(name_list: list, settings, image_loader):
     datasets = []
     for name in name_list:
         assert name in ["LASOT", "GOT10K_vottrain", "GOT10K_votval", "GOT10K_train_full", "GOT10K_official_val",
-                        "COCO17", "VID", "TRACKINGNET","antiUAV"]
+                        "COCO17", "VID", "TRACKINGNET","antiUAV","VASTTRACK"]
         if name == "LASOT":
             if settings.use_lmdb:
                 print("Building lasot dataset from lmdb")
@@ -83,6 +83,12 @@ def names2datasets(name_list: list, settings, image_loader):
                 raise ValueError("Not support anti-UAV in lmdb format")
             else:
                 datasets.append(UAV(settings.env.antiuav_dir, image_loader=image_loader))
+        if name == "VASTTRACK":
+            if settings.use_lmdb:
+                raise ValueError("Not support VastTrack in lmdb format")
+            else:
+                # 使用 VastTrack 类，split='train'（默认就是 train，也可以显式指定）
+                datasets.append(VastTrack(split='train', image_loader=image_loader))
     return datasets
 
 

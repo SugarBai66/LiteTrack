@@ -5,39 +5,51 @@ import pandas
 from collections import OrderedDict
 from lib.train.data import jpeg4py_loader_w_failsafe
 from lib.train.admin import env_settings
+# 在 vast_track.py 顶部，将
+# from .base_video_dataset import BaseVideoDataset
+# 改为：
+# from lib.train.dataset.base_video_dataset import BaseVideoDataset
 from .base_video_dataset import BaseVideoDataset
 
 class VastTrack(BaseVideoDataset):
     def __init__(self, root=None, image_loader=jpeg4py_loader_w_failsafe,
                  split='train', seq_ids=None, data_fraction=None):
-        # 如果 root 为空，从环境配置中读取
-        root = env_settings().vasttrack_dir if root is None else root
-        super().__init__('VastTrack', root, image_loader)
+        """
+        Args:
+            root: 数据集根目录（例如 /mnt/ssd4t/datasets/VastTrack/）
+            split: 'train' 或 'test'（或 'test_all'），决定使用哪个子目录
+        """
+        # 如果 root 未指定，从 env_settings 读取根目录（不包含 train/test）
+        if root is None:
+            root = env_settings().vasttrack_dir   # 假设你定义了这个
+        # 拼接 split 子目录
+        self.root = os.path.join(root, split)
+        super().__init__('VastTrack', self.root, image_loader)
 
-        # 1. 构建序列列表（可以是目录遍历，也可以从 list.txt 读取）
+        # 构建序列列表：所有 (类别, 视频) 元组
         self.sequence_list = []
-        # 假设所有类别文件夹在第一层
-        for cls in os.listdir(root):
-            cls_path = os.path.join(root, cls)
+        for cls in os.listdir(self.root):
+            cls_path = os.path.join(self.root, cls)
             if not os.path.isdir(cls_path):
                 continue
             for vid in os.listdir(cls_path):
                 vid_path = os.path.join(cls_path, vid)
                 if os.path.isdir(vid_path):
-                    self.sequence_list.append((cls, vid))  # 保存类别和视频名
+                    self.sequence_list.append((cls, vid))
 
-        # 2. 如果指定了 seq_ids，筛选子集
+        # 可选：筛选 seq_ids
         if seq_ids is not None:
             self.sequence_list = [self.sequence_list[i] for i in seq_ids]
 
-        # 3. 可选数据采样
+        # 可选：采样
         if data_fraction is not None:
             import random
             self.sequence_list = random.sample(self.sequence_list,
                                                int(len(self.sequence_list)*data_fraction))
 
-        # 4. 构建类别索引（用于按类采样）
+        # 构建类别索引（按类采样用）
         self.seq_per_class = self._build_class_list()
+
 
     def _build_class_list(self):
         seq_per_class = {}
@@ -66,7 +78,7 @@ class VastTrack(BaseVideoDataset):
 
     def _read_bb_anno(self, seq_path):
         # 根据实际标注文件格式修改
-        anno_file = os.path.join(seq_path, "groundtruth.txt")
+        anno_file = os.path.join(seq_path, "Groundtruth.txt")
         # 如果分隔符是逗号
         gt = pandas.read_csv(anno_file, delimiter=',', header=None,
                              dtype=np.float32, na_filter=False, low_memory=False).values
