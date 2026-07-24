@@ -23,7 +23,7 @@ DATA:
     DATASETS_NAME:
     - LASOT
     - GOT10K_vottrain
-    - COCO17
+    - VASTTRACK
     - TRACKINGNET
     DATASETS_RATIO:
     - 1

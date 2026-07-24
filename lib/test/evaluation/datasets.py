@@ -29,6 +29,7 @@ dataset_dict = dict(
                                        kwargs=dict()),
     antiuav=DatasetInfo(module=pt % "antiuav", class_name="antiUAVDataset", kwargs=dict(split='train')),
     antiuav_val=DatasetInfo(module=pt % "antiuav", class_name="antiUAVDataset", kwargs=dict(split='validation')),
+    vasttrack=DatasetInfo(module=pt % "vasttrack", class_name="VastTrackDataset", kwargs=dict(split='test')),
 )
 
 

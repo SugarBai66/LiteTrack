@@ -59,11 +59,12 @@ def main():
 
 
 if __name__ == "__main__":
-    import time
-    round_num = 0
-    while True:
-        round_num += 1
-        print(f"\n{'='*30} 开始第 {round_num} 轮遍历 {'='*30}")
-        main()  # 跑完所有序列
-        print(f"第 {round_num} 轮跑完了，休息 2 秒重新开始...")
-        time.sleep(2)  # 休息一下，防止 CPU 满载
+    main()
+    # import time
+    # round_num = 0
+    # while True:
+    #     round_num += 1
+    #     print(f"\n{'='*30} 开始第 {round_num} 轮遍历 {'='*30}")
+    #     main()  # 跑完所有序列
+    #     print(f"第 {round_num} 轮跑完了，休息 2 秒重新开始...")
+    #     time.sleep(2)  # 休息一下，防止 CPU 满载

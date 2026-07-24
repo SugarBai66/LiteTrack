@@ -126,6 +126,8 @@ class BaseTrainer:
         """Saves a checkpoint of the network and other variables."""
 
         net = self.actor.net.module if multigpu.is_multi_gpu(self.actor.net) else self.actor.net
+        # 不使用eval模式的checkpoints,full of checkpoints.
+        eval = False
 
         actor_type = type(self.actor).__name__
         net_type = type(net).__name__
@@ -206,6 +208,26 @@ class BaseTrainer:
 
         # Load network
         checkpoint_dict = torch.load(checkpoint_path, map_location='cpu',weights_only=false)
+
+        # ========== 新增补丁：处理旧版 eval 检查点（没有 epoch 字段） ==========
+        if 'epoch' not in checkpoint_dict:
+            import re
+            # 从文件名中提取 epoch 数字，例如 _ep0290.pth.tar -> 290
+            match = re.search(r'_ep(\d+)\.pth\.tar$', checkpoint_path)
+            if match:
+                epoch_num = int(match.group(1))
+                print(f"⚠️ 检测到旧版 eval 检查点（无 epoch 信息），手动强制设置 epoch = {epoch_num}")
+                self.epoch = epoch_num
+                # 同步更新学习率调度器的轮数，避免学习率重置
+                if self.lr_scheduler is not None:
+                    self.lr_scheduler.last_epoch = epoch_num
+                # 同步更新分布式采样器（如果用多卡）
+                for loader in self.loaders:
+                    if isinstance(loader.sampler, DistributedSampler):
+                        loader.sampler.set_epoch(epoch_num)
+            else:
+                print("⚠️ 无法从文件名解析 epoch，将保持当前 epoch（可能从 0 开始）")
+        # =====================================================================
 
         # assert net_type == checkpoint_dict['net_type'], 'Network is not of correct type.'
 
