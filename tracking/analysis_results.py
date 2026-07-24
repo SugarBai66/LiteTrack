@@ -26,8 +26,8 @@ dataset_name = 'lasot'
 # trackers.extend(trackerlist('dimp', 'prdimp18', None, range(0,5), 'PrDiMP18'))
 # trackers.extend(trackerlist('dimp', 'prdimp50', None, range(0,5), 'PrDiMP50'))
 """ostrack"""
-trackers.extend(trackerlist(name='ostrack', parameter_name='cae_center_all_ep300', dataset_name=dataset_name,
-                            run_ids=300, display_name='OSTrack256'))
+trackers.extend(trackerlist(name='litetrack', parameter_name='B9_cae_center_all_ep300', dataset_name=dataset_name,
+                            run_ids=290, display_name='litetrackB9'))
 # trackers.extend(trackerlist(name='ostrack', parameter_name='vitb_384_mae_ce_32x4_ep300', dataset_name=dataset_name,
 #                             run_ids=None, display_name='OSTrack384'))
 
