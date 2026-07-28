@@ -13,17 +13,11 @@ VISDOM = None
 def _save_tracker_output(seq: Sequence, tracker: Tracker, output: dict):
     """Saves the output of the tracker."""
 
-    if not os.path.exists(tracker.results_dir):
-        print("create tracking result dir:", tracker.results_dir)
-        os.makedirs(tracker.results_dir)
-    if seq.dataset in ['trackingnet', 'got10k']:
-        if not os.path.exists(os.path.join(tracker.results_dir, seq.dataset)):
-            os.makedirs(os.path.join(tracker.results_dir, seq.dataset))
-    '''2021.1.5 create new folder for these two datasets'''
-    if seq.dataset in ['trackingnet', 'got10k']:
-        base_results_path = os.path.join(tracker.results_dir, seq.dataset, seq.name)
-    else:
-        base_results_path = os.path.join(tracker.results_dir, seq.name)
+    # 为所有数据集创建子目录
+    dataset_dir = os.path.join(tracker.results_dir, seq.dataset)
+    if not os.path.exists(dataset_dir):
+        os.makedirs(dataset_dir)
+    base_results_path = os.path.join(dataset_dir, str(seq.name))
 
     def save_bb(file, data):
         tracked_bb = np.array(data).astype(int)
@@ -113,15 +107,13 @@ def run_sequence(seq: Sequence, tracker: Tracker, debug=False, num_gpu=8, vis=No
         pass
 
     def _results_exist():
+        dataset_dir = os.path.join(tracker.results_dir, seq.dataset)
+        base_path = os.path.join(dataset_dir, str(seq.name))
         if seq.object_ids is None:
-            if seq.dataset in ['trackingnet', 'got10k']:
-                base_results_path = os.path.join(tracker.results_dir, seq.dataset, seq.name)
-                bbox_file = '{}.txt'.format(base_results_path)
-            else:
-                bbox_file = '{}/{}.txt'.format(tracker.results_dir, seq.name)
+            bbox_file = '{}.txt'.format(base_path)
             return os.path.isfile(bbox_file)
         else:
-            bbox_files = ['{}/{}_{}.txt'.format(tracker.results_dir, seq.name, obj_id) for obj_id in seq.object_ids]
+            bbox_files = ['{}_{}.txt'.format(base_path, obj_id) for obj_id in seq.object_ids]
             missing = [not os.path.isfile(f) for f in bbox_files]
             return sum(missing) == 0
 
