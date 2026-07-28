@@ -113,7 +113,7 @@ def plot_draw_save(y, x, scores, trackers, plot_draw_styles, result_plot_path, p
 
     xlabel = plot_opts['xlabel']
     ylabel = plot_opts['ylabel']
-    ylabel = "%s"%(ylabel.replace('%','\%'))
+    ylabel = "%s"%(ylabel.replace('%','\\%'))
     xlim = plot_opts['xlim']
     ylim = plot_opts['ylim']
 
