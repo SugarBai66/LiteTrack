@@ -6,6 +6,7 @@ import os
 from typing import List
 
 import torch
+from sympy import false
 from torch import nn
 from torch.nn.modules.transformer import _get_clones
 
@@ -168,7 +169,7 @@ def build_LiteTrack(cfg, training=True):
     )
 
     if 'LiteTrack' in cfg.MODEL.PRETRAIN_FILE and training:
-        checkpoint = torch.load(cfg.MODEL.PRETRAIN_FILE, map_location="cpu")
+        checkpoint = torch.load(cfg.MODEL.PRETRAIN_FILE, map_location="cpu" ,weights_only=false)
         missing_keys, unexpected_keys = model.load_state_dict(
             checkpoint["net"], strict=False)
         print('Load pretrained model from: ' + cfg.MODEL.PRETRAIN_FILE)

@@ -1,5 +1,7 @@
 import math
 
+from sympy import false
+
 from lib.models import build_LiteTrack
 from lib.test.tracker.basetracker import BaseTracker
 import torch
@@ -22,7 +24,7 @@ class LiteTrack(BaseTracker):
     def __init__(self, params, dataset_name):
         super(LiteTrack, self).__init__(params)
         network = build_LiteTrack(params.cfg, training=False)
-        network.load_state_dict(torch.load(self.params.checkpoint, map_location='cpu')['net'], strict=False)
+        network.load_state_dict(torch.load(self.params.checkpoint, map_location='cpu',weights_only=false)['net'], strict=False)
 
         self.cfg = params.cfg
         self.network = network.cuda()

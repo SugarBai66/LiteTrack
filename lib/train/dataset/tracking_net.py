@@ -117,11 +117,11 @@ class TrackingNet(BaseVideoDataset):
         bb_anno_file = os.path.join(self.root, "TRAIN_" + str(set_id), "anno", vid_name + ".txt")
 
         # 尝试多种分隔符
-        for delimiter in [',', None, '\s+']:
+        for delimiter in [',', None, r'\s+']:
             try:
-                if delimiter is None or delimiter == '\s+':
+                if delimiter is None or delimiter == r'\s+':
                     # pandas 处理任意空白分隔符
-                    df = pd.read_csv(bb_anno_file, header=None, sep='\s+',
+                    df = pd.read_csv(bb_anno_file, header=None, sep=r'\s+',
                                      skipinitialspace=True, engine='python',
                                      skip_blank_lines=True, on_bad_lines='skip')
                     df = df.dropna()

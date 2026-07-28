@@ -27,14 +27,14 @@ dataset_name = 'lasot'
 # trackers.extend(trackerlist('dimp', 'prdimp50', None, range(0,5), 'PrDiMP50'))
 """ostrack"""
 trackers.extend(trackerlist(name='litetrack', parameter_name='B9_cae_center_all_ep300', dataset_name=dataset_name,
-                            run_ids=290, display_name='litetrackB9'))
+                            run_ids=300, display_name='litetrackB9'))
 # trackers.extend(trackerlist(name='ostrack', parameter_name='vitb_384_mae_ce_32x4_ep300', dataset_name=dataset_name,
 #                             run_ids=None, display_name='OSTrack384'))
 
 
 dataset = get_dataset(dataset_name)
 # dataset = get_dataset('otb', 'nfs', 'uav', 'tc128ce')
-plot_results(trackers, dataset, 'LaSOT', merge_results=True, plot_types=('success', 'norm_prec'),
-             skip_missing_seq=False, force_evaluation=True, plot_bin_gap=0.05)
-# print_results(trackers, dataset, dataset_name, merge_results=True, plot_types=('success', 'norm_prec', 'prec'))
+# plot_results(trackers, dataset, 'LaSOT', merge_results=True, plot_types=('success', 'norm_prec'),
+#              skip_missing_seq=False, force_evaluation=True, plot_bin_gap=0.05)
+print_results(trackers, dataset, dataset_name, merge_results=True, plot_types=('success', 'norm_prec', 'prec'))
 # print_results(trackers, dataset, 'UNO', merge_results=True, plot_types=('success', 'prec'))
