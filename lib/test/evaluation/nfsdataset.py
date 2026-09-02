@@ -21,24 +21,43 @@ class NFSDataset(BaseDataset):
         return SequenceList([self._construct_sequence(s) for s in self.sequence_info_list])
 
     def _construct_sequence(self, sequence_info):
-        sequence_path = sequence_info['path']
+        # 1. 从完整名称中提取基础序列名（去掉 'nfs_' 前缀）
+        full_name = sequence_info['name']
+        if full_name.startswith('nfs_'):
+            base_name = full_name[4:]  # 例如 'Gymnastics'
+        else:
+            base_name = full_name
+
+        # 2. 选择帧率版本（统一使用 240，若需要可改为 30）
+        fps = '30'
+        # 自动检测：若 240 目录不存在则回退到 30（可选）
+        import os
+        fps_dir_240 = '{}/{}/240'.format(self.base_path, base_name)
+        if os.path.exists(fps_dir_240):
+            fps_dir = fps_dir_240
+        else:
+            fps_dir = '{}/{}/30'.format(self.base_path, base_name)
+
+        # 3. 标注文件路径
+        anno_path = '{}/{}.txt'.format(fps_dir, base_name)
+
+        # 4. 图像目录（在 fps_dir 下有一个与 base_name 同名的文件夹）
+        img_dir = '{}/{}'.format(fps_dir, base_name)
+
+        # 5. 构造帧序列
         nz = sequence_info['nz']
         ext = sequence_info['ext']
         start_frame = sequence_info['startFrame']
         end_frame = sequence_info['endFrame']
+        init_omit = sequence_info.get('initOmit', 0)
 
-        init_omit = 0
-        if 'initOmit' in sequence_info:
-            init_omit = sequence_info['initOmit']
+        frames = ['{}/{frame:0{nz}}.{ext}'.format(img_dir, frame=frame_num, nz=nz, ext=ext)
+                  for frame_num in range(start_frame + init_omit, end_frame + 1)]
 
-        frames = ['{base_path}/{sequence_path}/{frame:0{nz}}.{ext}'.format(base_path=self.base_path, 
-        sequence_path=sequence_path, frame=frame_num, nz=nz, ext=ext) for frame_num in range(start_frame+init_omit, end_frame+1)]
-
-        anno_path = '{}/{}'.format(self.base_path, sequence_info['anno_path'])
-
+        # 6. 加载标注（注意分隔符为制表符）
         ground_truth_rect = load_text(str(anno_path), delimiter='\t', dtype=np.float64)
 
-        return Sequence(sequence_info['name'], frames, 'nfs', ground_truth_rect[init_omit:,:],
+        return Sequence(sequence_info['name'], frames, 'nfs', ground_truth_rect[init_omit:, :],
                         object_class=sequence_info['object_class'])
 
     def __len__(self):

@@ -19,6 +19,10 @@ def _save_tracker_output(seq: Sequence, tracker: Tracker, output: dict):
         os.makedirs(dataset_dir)
     base_results_path = os.path.join(dataset_dir, str(seq.name))
 
+    # ===== 添加下面这一行 =====
+    os.makedirs(os.path.dirname(base_results_path), exist_ok=True)
+    # =========================
+
     def save_bb(file, data):
         tracked_bb = np.array(data).astype(int)
         np.savetxt(file, tracked_bb, delimiter='\t', fmt='%d')

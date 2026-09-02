@@ -24,6 +24,11 @@
 
 ![image-20260725104755883](assets/B9_cae_center_all_big_ep300_100.png)
 
+### B8_cae_center_got10k_ep100_mine
+
+![image-20260902094900910](assets/image-20260902094900910.png)
+
+
 | Model                                         |  AO   |  SR   |  MR   |  FPS  | GPU    | Language | Visibility | Date         |
 | :-------------------------------------------- | :---: | :---: | :---: | :---: | :----- | :------: | :--------: | :----------- |
 | B9_cae_center_got10k_ep100_100                | 0.706 | 0.801 | 0.670 | 30.15 | 5060Ti |  python  |  Private   | Jul 19, 2026 |
@@ -32,6 +37,7 @@
 | B9_cae_center_got10k_ep100_fixLR_099 LR=0.001 | 0.677 | 0.770 | 0.624 | 28.19 | 5060Ti |  python  |  Private   | Jul 19, 2026 |
 | B9_cae_center_all_ep300_300                   | 0.732 | 0.834 | 0.710 | 27.09 | 5060Ti |  python  |  Private   | Jul 24, 2026 |
 | B9_cae_center_all_big_ep300_100               | 0.724 | 0.827 | 0.700 | 28.70 | 5060Ti |  python  |  Private   | Jul 25, 2026 |
+| B8_cae_center_got10k_ep100_mine               | 0.659 | 0.763 | 0.593 | 70.60 | 5060Ti |  python  |  Private   | Sep 02, 2026 |
 
 ![image-20260724182104110](assets/B9_cae_center_all_ep300_290.png)
 
@@ -481,3 +487,97 @@ ValueError: Network outputs is NAN! Stop Training
 ```
 
 ![image-20260718220911411](assets/image-20260718220911412.png)
+
+
+
+
+
+## Debug
+
+![image-20260902160310852](assets/image-202609021603108522.png)
+
+这是一个**多进程（分布式）训练**的调试场景（顶部有 `Subprocess` 标签）。你当前停在 **`MainThread`** 的 `run_training` 中，调用栈非常清楚：
+`run_training.py` -> `train_script.py` -> `lib/models/__init__.py` (build_LiteTrack) -> `litetrack.py` (build_LiteTrack) -> `head.py` (build_box_head) -> `head.py` (CenterPredictor.**init**)。
+
+这证实了你调试的是**原始 LiteTrack**（因为调用的是 `lib/models/layers/head.py` 里的 `CenterPredictor`，而不是 `relo_head.py`），完全符合你的预期。
+
+下面针对深度学习工程，为你总结**调试技巧**和**需要捕捉的关键信息**：
+
+### 🚨 针对当前多进程环境的特殊技巧
+
+你切到了 `MainThread`，这是对的。但如果有多个 `Subprocess` 且你只在主进程打断点，其他进程的数据加载可能会卡住。
+
+- **降低复杂度**：建议在 YAML 配置中把 `NUM_WORKER` 改为 `0`（`TRAIN.NUM_WORKER: 0`），这样没有子进程，调试会顺畅很多。
+- **只看主进程**：`run_training.py` 是主进程，负责模型构建。**数据加载和反向传播**通常在子进程中进行，如果你在主进程中打 `forward` 的断点，可能根本不会命中（因为实际算力在子进程里）。要调试前向，请直接调试 `run_training` 本身。
+
+------
+
+### 🔍 需要捕捉的关键信息（按你当前阶段排序）
+
+你目前停在 `__init__`（模型构建阶段），这里最主要看两个：
+
+1. **参数合理性**：确认 `feat_sz` 是否正确（16），确认 `inplanes` 是否是 `768`，以及 `channel` 是否是 `256`。
+2. **权重初始化**：在 `for p in self.parameters():` 这行打断点，看权重是否被正确初始化（例如 `xavier_uniform_` 方法是否被调用，标准差是否正常）。
+
+**更重要的断点位置（建议你往下走）：**
+
+- **在 `finetune_track` 之后**：查看 `backbone.pos_embed_x` 和 `backbone.pos_embed_z` 的**形状**。这里应该分别是 `(1, 256, 768)` 和 `(1, 64, 768)`。如果不对，说明位置编码插值有问题。
+- **在 `LiteTrack.forward` 或 `forward_head` 内部**：这是最容易出 bug 的地方。你需要在 PyCharm 的 **“Evaluate Expression” (Alt+F8)** 窗口输入：`opt_feat.shape`，看是否真的是 `(Batch, 768, 16, 16)`。同时看 `score_map_ctr.shape` 和 `bbox.shape`，这是之前你踩过的坑。
+
+------
+
+### 🛠 实用的 PyCharm 调试技巧
+
+1. **“求值表达式” (Evaluate Expression)**：这是最神的调试技巧。**不需要修改代码加 print**，直接在调试窗口输入：
+   - 查看形状：`self.conv1_ctr[0].weight.shape`
+   - 查看张量值：`backbone.pos_embed_x[0, :5, :5]`
+   - 查看当前配置：`cfg.DATA.SEARCH.SIZE`
+2. **“条件断点”**：如果你在训练循环里（比如 `ltr_trainer.py` 的 `train_epoch` 里）想只看某一步，右键断点，设置 Condition，比如 `self.epoch == 50`，程序会直接停在第50步。
+3. **“步出” (Step Out, Shift+F8)**：当你误入了底层的 `torch.nn` 内部函数时，用它快速回到你的业务代码。
+4. **观察窗口 (Watches)**：在左侧右键变量名，选择 “Add to Watches”，可以方便地跨函数跟踪同一个变量。
+
+------
+
+### 💡 针对你当前“性能低4个点”的排查建议
+
+你现在调试原始 `litetrack` 是为了对比。请重点对比 **`CenterPredictor`** 和 **`RELOHead`** 的 `forward` 输出差异：
+
+1. 在原始 `head.py` 的 `forward` 里，设置断点，看 `bbox` 是怎么算出来的。
+2. 在 `relo_head.py` 的 `forward` 里，设断点，看 `policy_logits` 的分布。是不是因为初始随机，导致它选的位置比 `score_map` 选的位置差？
+
+![image-20260902162715138](assets/image-20260902162715138.png)
+
+它本质上是一个名为 `LiteTrack` 的类实例，内部确实是由 **Backbone（骨干网络）** 和 **Head（预测头）** 两部分组成，外加一个**目标 Token 嵌入模块**。
+
+结合你截图中的变量 `model`，我为你详细拆解它的结构和当前状态：
+
+### 1. 核心组件拆解
+
+- **`backbone` (骨干网络)**：类型是 `VIT_Backbone`，来自 `vit_cae_async.py`。
+  - 它的作用是从模板和搜索图像中提取特征。
+  - 展开后可以看到 `patch_embed`（图像分块）、`blocks`（Transformer 层）等。`embed_dim=768` 是特征维度。
+  - 特别地，因为你配置了 `add_target_token=True`，Backbone 会额外处理一个特殊的目标 Token。
+- **`box_head` (预测头)**：类型是 `CenterPredictor`，来自 `lib/models/layers/head.py`。
+  - 它负责根据 Backbone 提取的特征，预测目标的**中心点、尺寸和偏移量**。
+  - 你可以看到它内部包含了 `conv1_ctr` 等卷积层，最终输出 `score_map`（中心热图）、`size_map` 和 `offset_map`。
+  - **注意**：因为这里 `head_type` 是 `'CENTER'`，且 `box_head` 的类型是 `CenterPredictor`（不是 RELOHead），说明你目前调试的是**原始的 LiteTrack 模型**（对应你 `USE_MYTRACK: False` 的配置）。
+- **`target_token_embed` (目标 Token 嵌入层)**：类型是 `Mlp`。
+  - 输入是 4 维（目标 BBox 的 x,y,w,h），输出是 768 维（embed_dim）。
+  - 它负责将目标框的先验信息编码成向量，插入到模板特征序列中，帮助模型更好地锁定目标。
+
+### 2. 关键参数解读（用于排查问题）
+
+- **`feat_size_s = 16`** / **`feat_len_s = 256`**：搜索区域特征图是 16x16，总共 256 个 Token。
+- **`feat_size_t = 8`** / **`feat_len_t = 64`**：模板区域特征图是 8x8，总共 64 个 Token。
+- **`training = True`**：模型当前处于训练模式（会影响 BatchNorm 和 Dropout 等层的行为）。
+- **`pretrained`**：指向 `cae_base.pth`，说明模型正在加载预训练权重。
+
+### 3. 这对你的调试有什么意义？
+
+如果你想观察数据是怎么流动的，最直接的方法是：
+
+1. **看 Backbone 的输出**：在 `model.forward` 或 `model.forward_train` 中，看看 `backbone` 输出的特征形状，应该是 `(Batch, 64+256, 768)`（模板和搜索拼接后的序列）。
+2. **看 Head 的输入**：在 `forward_head` 方法中，看它如何从特征序列中只提取搜索区域的特征（`cat_feature[:, -self.feat_len_s:]`），并重塑为 `(B, 768, 16, 16)` 喂给 `box_head`。
+3. **确认模型结构**：你现在的 `head_type` 是 `'CENTER'`，说明你正在跑的是原版，如果你想跑 RELO，需要确保配置 `HEAD.TYPE: "RELO"` 且 `USE_MYTRACK: True`，这样 `box_head` 的类型才会变成 `RELOHead`。
+
+**总结**：这个 `model` 就是你的完整网络架构，结构清晰。你现在可以在 PyCharm 中继续按 **Step Over (F8)**，进入 `forward` 函数，观察张量形状如何变化

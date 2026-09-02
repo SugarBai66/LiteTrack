@@ -70,9 +70,9 @@ def main():
 
     # 打印结果（也可以选择 plot_results）
     # report_name 使用数据集名
-    # print_results( trackers, dataset, args.dataset,  merge_results=args.merge, plot_types=tuple(args.plot_types))
+    print_results( trackers, dataset, args.dataset,  merge_results=args.merge, plot_types=tuple(args.plot_types))
 
-    plot_results(trackers, dataset, args.dataset, merge_results=True, plot_types=('success', 'norm_prec'), skip_missing_seq=False, force_evaluation=True, plot_bin_gap=0.05)
+    # plot_results(trackers, dataset, args.dataset, merge_results=True, plot_types=('success', 'norm_prec'), skip_missing_seq=False, force_evaluation=True, plot_bin_gap=0.05)
 
     # 指定其他数据集和参数
     # python analysis_results.py --dataset lasot --parameter B9_cae_center_all_ep300 --run_id 300 --display_name myTracker

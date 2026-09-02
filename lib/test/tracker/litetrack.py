@@ -92,7 +92,7 @@ class LiteTrack(BaseTracker):
             return self.track_decoder(image, info=info, vis=vis)
         elif self.cfg.MODEL.HEAD.TYPE == 'GFL':
             return self.track_GFL(image, info=info, vis=vis)
-        elif self.cfg.MODEL.HEAD.TYPE == 'CENTER':
+        elif self.cfg.MODEL.HEAD.TYPE in ['CENTER', 'RELO']:   # 添加 RELO
             return self.track_center(image, info=info, vis=vis)
 
     def track_center(self, image, info: dict = None, vis=None):
@@ -101,6 +101,15 @@ class LiteTrack(BaseTracker):
         x_patch_arr, resize_factor, x_amask_arr = sample_target(image, self.state, self.params.search_factor,
                                                                 output_sz=self.params.search_size)  # (x1, y1, w, h)
         search = self.preprocessor.process(x_patch_arr, x_amask_arr)
+        # 调试打印开始
+        # print("DEBUG track_center: self.z_feat type:", type(self.z_feat))
+        # print("DEBUG track_center: self.z_feat shape:",
+        #       self.z_feat.shape if hasattr(self.z_feat, 'shape') else 'no shape')
+        # print("DEBUG track_center: search.tensors type:", type(search.tensors))
+        # print("DEBUG track_center: search.tensors shape:",
+        #       search.tensors.shape if hasattr(search.tensors, 'shape') else 'no shape')
+        # 调试打印结束
+
 
         with torch.no_grad():
             x_dict = search
@@ -109,7 +118,9 @@ class LiteTrack(BaseTracker):
             # out_dict = self.network.forward(
             #     template=self.z_dict1.tensors, search=x_dict.tensors, template_bb=self.template_bbox)
             out_dict = self.network(
-                template_feats=self.z_feat, search=x_dict.tensors)    
+                template_feats=self.z_feat, search=x_dict.tensors)
+
+        # print("DEBUG track_center: out_dict type:", type(out_dict))
 
         # add hann windows
         pred_score_map = out_dict['score_map']

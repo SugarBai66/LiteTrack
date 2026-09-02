@@ -147,7 +147,7 @@ class OSTrackActor(BaseActor):
             loss, status = self.compute_losses_REPPOINTS_(pred_dict, gt_dict,)
         elif self.cfg.MODEL.HEAD.TYPE == 'DECODER':
             loss, status = self.compute_losses_DECODER(pred_dict, gt_dict,)
-        elif self.cfg.MODEL.HEAD.TYPE == 'CENTER':
+        elif self.cfg.MODEL.HEAD.TYPE in ["CENTER", "RELO"]:
             loss, status = self.compute_losses_CENTER(pred_dict, gt_dict,)
         if return_status:
             return loss, status

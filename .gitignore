@@ -180,4 +180,3 @@ assets/vis_attn_weights
 # ./*.png
 output_img/
 */__pycache__/
-debug/
