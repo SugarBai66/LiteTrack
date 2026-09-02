@@ -355,6 +355,7 @@ class RELOHead(nn.Module):
         # 其中 bbox 是基于 score_map_ctr 的 argmax 得到的（这里我们不直接用它的 bbox，而是自己算）
         score_map_ctr, _, size_map, offset_map = self.reg_head(x, feat_size)
 
+
         # 2. 策略头：获取每个位置的 Logit
         policy_logits = self.policy_head(x)  # (B, H*W)
 
