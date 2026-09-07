@@ -14,6 +14,10 @@ from .base_functions import *
 from lib.models import build_ostrack, build_LiteTrack
 
 from lib.train.actors import  OSTrackActor
+
+# 在 train_script.py 顶部引入你的新 Actor
+from lib.train.actors.litetrack_relo_actor import LiteTrackWarmupActor, LiteTrackRELOActor
+
 # for import modules
 import importlib
 from lib.utils.slconfig import SLConfig

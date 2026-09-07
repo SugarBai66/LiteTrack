@@ -28,16 +28,20 @@
 
 ![image-20260902094900910](assets/image-20260902094900910.png)
 
+### B9_cae_center_got10k_ep100_100_mine
 
-| Model                                         |  AO   |  SR   |  MR   |  FPS  | GPU    | Language | Visibility | Date         |
-| :-------------------------------------------- | :---: | :---: | :---: | :---: | :----- | :------: | :--------: | :----------- |
-| B9_cae_center_got10k_ep100_100                | 0.706 | 0.801 | 0.670 | 30.15 | 5060Ti |  python  |  Private   | Jul 19, 2026 |
-| B8_cae_center_got10k_ep100_100                | 0.696 | 0.801 | 0.644 | 31.90 | 5060Ti |  python  |  Private   | Jul 16, 2026 |
-| B9_cae_center_got10k_ep100_fixLR_100 LR=0.001 | 0.689 | 0.784 | 0.633 | 27.76 | 5060Ti |  python  |  Private   | Jul 19, 2026 |
-| B9_cae_center_got10k_ep100_fixLR_099 LR=0.001 | 0.677 | 0.770 | 0.624 | 28.19 | 5060Ti |  python  |  Private   | Jul 19, 2026 |
-| B9_cae_center_all_ep300_300                   | 0.732 | 0.834 | 0.710 | 27.09 | 5060Ti |  python  |  Private   | Jul 24, 2026 |
-| B9_cae_center_all_big_ep300_100               | 0.724 | 0.827 | 0.700 | 28.70 | 5060Ti |  python  |  Private   | Jul 25, 2026 |
-| B8_cae_center_got10k_ep100_mine               | 0.659 | 0.763 | 0.593 | 70.60 | 5060Ti |  python  |  Private   | Sep 02, 2026 |
+![image-20260907141247376](assets/image-20260907141247377.png)
+
+| Model                                         |  AO   |  SR   |  MR   |  FPS   | GPU    | Language | Visibility | Date         |
+| :-------------------------------------------- | :---: | :---: | :---: | :----: | :----- | :------: | :--------: | :----------- |
+| B9_cae_center_got10k_ep100_100                | 0.706 | 0.801 | 0.670 | 30.15  | 5060Ti |  python  |  Private   | Jul 19, 2026 |
+| B8_cae_center_got10k_ep100_100                | 0.696 | 0.801 | 0.644 | 31.90  | 5060Ti |  python  |  Private   | Jul 16, 2026 |
+| B9_cae_center_got10k_ep100_fixLR_100 LR=0.001 | 0.689 | 0.784 | 0.633 | 27.76  | 5060Ti |  python  |  Private   | Jul 19, 2026 |
+| B9_cae_center_got10k_ep100_fixLR_099 LR=0.001 | 0.677 | 0.770 | 0.624 | 28.19  | 5060Ti |  python  |  Private   | Jul 19, 2026 |
+| B9_cae_center_all_ep300_300                   | 0.732 | 0.834 | 0.710 | 27.09  | 5060Ti |  python  |  Private   | Aug 24, 2026 |
+| B9_cae_center_all_big_ep300_100               | 0.724 | 0.827 | 0.700 | 28.70  | 5060Ti |  python  |  Private   | Aug 25, 2026 |
+| B8_cae_center_got10k_ep100_mine               | 0.659 | 0.763 | 0.593 | 70.60  | 5060Ti |  python  |  Private   | Sep 02, 2026 |
+| B9_cae_center_got10k_ep100_mine               | 0.661 | 0.769 | 0.605 | 106.94 | 5060Ti |  python  |  Private   | Sep 07, 2026 |
 
 ![image-20260724182104110](assets/B9_cae_center_all_ep300_290.png)
 
